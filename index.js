@@ -32,6 +32,7 @@ async function run() {
         const productCollections = client.db("productCollections").collection('products');
         const addedProduct = client.db("productCollections").collection('cart');
         const usersCollection = client.db("productCollections").collection('user');
+        const orderCollection = client.db("productCollections").collection('order');
 
         app.get('/product', async (req, res) => {
             const query = {}
@@ -62,7 +63,7 @@ async function run() {
             res.send(products);
 
         });
-        app.put('/user/:email', async (req, res) => {
+      /*   app.put('/user/:email', async (req, res) => {
             const email = req.params.email;
             const user = req.body;
 
@@ -76,7 +77,7 @@ async function run() {
             res.send({ result, token });
             console.log(filter);
 
-        });
+        }); */
         app.delete('/cart/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: id }
@@ -85,6 +86,19 @@ async function run() {
 
 
         });
+        app.post('/order', async (req, res) => {
+            const order= req.body;
+            const result = await orderCollection.insertOne(order);
+            res.send({ success: true, result });
+
+        });
+        app.get('/order',async (req,res)=>{
+            const { email } = req.query
+
+            const orders = await orderCollection.find({ email }).toArray();
+            res.send(orders);
+
+        })
 
     }
     finally {
