@@ -133,18 +133,31 @@ async function run() {
 
         })
         app.put('/user/admin/:email', async (req, res) => {
-           const email=req.params.email
-           const filter={email:email}
-           const updateDoc = {
-            $set: {
-              role:'admin'
-            },
+            const email = req.params.email
+            const filter = { email: email }
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                },
 
-          };
-          const result = await usersCollection.updateOne(filter, updateDoc);
-          res.send({result})
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send({ result })
+        });
+        app.put('/user/removeadmin/:email', async (req, res) => { //for remove admin
+            const email = req.params.email
+            const filter = { email: email }
+            const updateDoc = {
+                $set: {
+                    role: 'client'
+                },
+
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send({ result })
         });
     }
+
     finally {
     }
 }
