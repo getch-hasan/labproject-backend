@@ -7,11 +7,13 @@ const cors = require('cors')
 require('dotenv').config()
 const { json } = require('express/lib/response');
 const port = process.env.PORT || 8000;
-
+const stripe = require("stripe")('sk_test_51NaP9YIRxjIz7Efm3pMpaHNCPtacDG69uz6U68SNtEwU8Am5D8w7SaaeCd82wWlGTjmQUVij0IP6gdrn7rUWt2YX003mm3CMom');
 app.use(express.json())
 app.get('/', (req, res) => {
     res.send('Hello World!')
 })
+
+
 
 
 
@@ -41,6 +43,7 @@ function verifyJWT(req, res, next) { //kew email er maddome jno amr data dekhte 
 }
 async function run() {
     try {
+
         await client.connect();
 
         const productCollections = client.db("productCollections").collection('products');
@@ -75,6 +78,10 @@ async function run() {
 
         });
 
+
+
+
+
         app.post('/cart', async (req, res) => {
 
             const cart = req.body;
@@ -96,7 +103,7 @@ async function run() {
 
         });
         app.put('/user/:email', async (req, res) => {
-            const email = req.params.email;
+            const email = req.params;
             const user = req.body;
 
             const filter = { email: email }
@@ -105,11 +112,14 @@ async function run() {
                 $set: user
             }
             const result = await usersCollection.updateOne(filter, updateDoc, options);
-            const token = jwt.sign({ email: email })
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
             res.send({ result, token });
-            console.log(token);
+            console.log(filter);
 
         });
+
+
+
 
         app.delete('/cart/:id', async (req, res) => {
             const id = req.params.id;
@@ -127,10 +137,15 @@ async function run() {
         });
         app.get('/order', async (req, res) => {
             const { email } = req.query
-
             const orders = await orderCollection.find({ email }).toArray();
             res.send(orders);
-
+        })
+        // get single product or update single order product 
+        app.get('/order/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const order = await orderCollection.findOne(query)
+            res.send(order);
         })
         app.put('/user/admin/:email', async (req, res) => {
             const email = req.params.email
@@ -151,11 +166,48 @@ async function run() {
                 $set: {
                     role: 'client'
                 },
-
             };
             const result = await usersCollection.updateOne(filter, updateDoc);
             res.send({ result })
         });
+
+        app.post("/create-payment-intent", async (req, res) => {
+            const { items } = req.body;
+            const price = items.totalPrice
+            const amount = price * 100
+            // Create a PaymentIntent with the order amount and currency
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ['card'],
+                // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
+                automatic_payment_methods: {
+                    enabled: true,
+                },
+
+            });
+            console.log(paymentIntent)
+
+
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            });
+        });
+
+        app.patch('/order/:id', async (req, res) => {
+            const id = req.params.id
+            const payment = req.body
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updatedBooking = await orderCollection.updateOne(filter, updateDoc);
+            //const result=await paymentsCollection.insertOne(payment)
+            res.send(updateDoc)
+        })
     }
 
     finally {
@@ -163,6 +215,8 @@ async function run() {
 }
 run().catch(console.dir);
 
+
 app.listen(port, () => {
     console.log(` baby shop listening on port ${port}`)
 })
+
