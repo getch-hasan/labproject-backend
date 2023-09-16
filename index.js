@@ -9,6 +9,7 @@ const { json } = require('express/lib/response');
 const port = process.env.PORT || 8000;
 const stripe = require("stripe")('sk_test_51NaP9YIRxjIz7Efm3pMpaHNCPtacDG69uz6U68SNtEwU8Am5D8w7SaaeCd82wWlGTjmQUVij0IP6gdrn7rUWt2YX003mm3CMom');
 app.use(express.json())
+app.use(cors())
 app.get('/', (req, res) => {
     res.send('Hello World!')
 })
